@@ -98,17 +98,17 @@ class SessionMiddleware
      * Configure and start session
      */
     protected function start()
-    {
-        // Extract settings to variables
-        extract($this->settings);
+     {
+        $settings = $this->settings;
 
         // Set session to use cookies and only cookies
         ini_set('session.use_cookies', 1);
         ini_set('session.use_only_cookies', 1);
 
         // If lifetime is string, convert it to timestamp
-        if (is_string($lifetime)) {
-            $lifetime = strtotime($lifetime) - time();
+        $lifetime = 0;
+        if (is_string($settings['lifetime'])) {
+            $lifetime = strtotime($settings['lifetime']) - time();
         }
 
         // Set number of seconds after which data will be seen as garbage
@@ -117,11 +117,11 @@ class SessionMiddleware
         }
 
         // Set path where session cookies are saved
-        if (is_string($save_path)) {
-            if (!is_writable($save_path)) {
+        if (is_string($settings['save_path'])) {
+            if (!is_writable($settings['save_path'])) {
                 throw new RuntimeException('Session save path is not writable.');
             }
-            ini_set('session.save_path', $save_path);
+            ini_set('session.save_path', $settings['save_path']);
         }
 
         // Set session id hash function / length
@@ -134,20 +134,20 @@ class SessionMiddleware
         }
 
         // Set session cache limiter
-        session_cache_limiter($cache_limiter);
+        session_cache_limiter($settings['cache_limiter']);
 
         // Set session cookie name
-        session_name($name);
+        session_name($settings['name']);
 
         // Set session cookie parameters
-        session_set_cookie_params($lifetime, $path, $domain, $secure, $httponly);
+        session_set_cookie_params($lifetime, $settings['path'], $settings['domain'], $settings['secure'], $settings['httponly']);
 
         // Set session encryption
-        if (is_string($encryption_key)) {
+        if (is_string($settings['encryption_key'])) {
             // Add HTTP user agent to encryption key to strengthen encryption
-            $encryption_key .= md5($this->container->request->getHeaderLine('HTTP_USER_AGENT'));
+            $encryptionKey = $settings['encryption_key'] . md5($this->container->request->getHeaderLine('HTTP_USER_AGENT'));
 
-            $handler = new \AdBar\SecureSessionHandler($encryption_key);
+            $handler = new \AdBar\SecureSessionHandler($encryptionKey);
             session_set_save_handler($handler, true);
         }
 
@@ -155,8 +155,7 @@ class SessionMiddleware
         session_start();
 
         // Extend session lifetime
-        if ($autorefresh === true && isset($_COOKIE[$name])) {
-            setcookie($name, $_COOKIE[$name], time() + $lifetime, $path, $domain, $secure, $httponly);
+        if ($settings['autorefresh'] === true && isset($_COOKIE[$settings['name']])) {
+            setcookie($settings['name'], $_COOKIE[$settings['name']], time() + $settings['lifetime'], $settings['path'], $settings['domain'], $settings['secure'], $settings['httponly']);
         }
     }
-}
