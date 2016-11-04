@@ -54,9 +54,11 @@ class SessionMiddleware
      *
      * @param Container $container Container
      */
-    public function __construct(Container $container)
+    public function __construct(Container $container, array $sessionSettings=null)
     {
-        if (is_array($container->settings['session'])) {
+        if ($sessionSettings) {
+            $this->settings = array_merge($this->settings, $sessionSettings);
+        } elseif (is_array($container->settings['session'])) {
             $this->settings = array_merge($this->settings, $container->settings['session']);
         }
         $this->container = $container;
